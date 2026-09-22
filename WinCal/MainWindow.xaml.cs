@@ -220,7 +220,7 @@ public partial class MainWindow : Window
 
     internal void Render()
     {
-        MonthTitle.Text = _viewMonth.ToString(Loc.T("month_fmt"));
+        MonthTitle.Text = _viewMonth.ToString(Loc.T("month_fmt"), Loc.Culture);
         RenderStatus();
         RenderHeaderButtons();
         RenderWeekdays();

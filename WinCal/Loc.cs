@@ -5,6 +5,10 @@ internal static class Loc
 {
     public static bool Korean => App.Settings.Language != "en";
 
+    /// <summary>Culture for date formatting (month names etc.).</summary>
+    public static System.Globalization.CultureInfo Culture =>
+        System.Globalization.CultureInfo.GetCultureInfo(Korean ? "ko-KR" : "en-US");
+
     public static string T(string key) =>
         (Korean ? Ko : En).TryGetValue(key, out var v) ? v : key;
 
