@@ -21,6 +21,12 @@ A monthly calendar widget that lives **on the Windows desktop** — rendered abo
   full-screen/region mode, UI scale, cell/window opacity, run at startup
 - RRULE recurrence expansion, timezone conversion, multi-day event spans (Ical.Net)
 
+## Install
+
+**Just run it** — grab `WinCal.exe` from [Releases](https://github.com/jaymunsh/win-cal/releases)
+and double-click. No installer, no .NET required (self-contained single file, ~72 MB).
+The calendar pins itself to the desktop; the app lives in the system tray.
+
 ## Usage
 
 1. Google Calendar → Settings → your calendar → "Integrate calendar" → copy **"Secret address in iCal format"**
@@ -28,14 +34,15 @@ A monthly calendar widget that lives **on the Windows desktop** — rendered abo
 3. Position/resize: tray menu → "Adjust position" → drag, then "Done (lock)"
 4. Editing events stays in Google Calendar — the "Google Calendar" button opens it in the browser
 
-## Build & Publish
+## Build from source
 
 ```bash
 dotnet build win-cal.sln
 
-# Single-file self-contained build
+# Single-file self-contained build (~72 MB, runs without .NET)
 dotnet publish WinCal -c Release -r win-x64 --self-contained `
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+  -p:EnableCompressionInSingleFile=true
 ```
 
 ## Architecture
