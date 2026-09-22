@@ -27,6 +27,10 @@ Windows **바탕화면에 박히는** 월간 캘린더 위젯. DesktopCal 스타
 `WinCal.exe`를 받아 더블클릭. 설치 과정도, .NET 설치도 필요 없습니다
 (단일 파일 self-contained, 약 72MB). 실행하면 달력이 바탕화면에 붙고, 앱은 트레이에만 상주합니다.
 
+> **참고:** 코드 서명이 없는 exe라 첫 실행 시 SmartScreen 경고("Windows에서 PC를 보호했습니다")가
+> 뜰 수 있습니다 — **추가 정보 → 실행**을 누르면 됩니다.
+> 각 릴리스에 SHA256 해시가 적혀 있으며 `certutil -hashfile WinCal.exe SHA256`로 검증할 수 있습니다.
+
 ## 사용법
 
 1. Google 캘린더 → 설정 → 해당 캘린더 → "캘린더 통합" → **"비밀 주소(iCal 형식)"** 복사

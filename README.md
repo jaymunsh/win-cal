@@ -27,6 +27,10 @@ A monthly calendar widget that lives **on the Windows desktop** — rendered abo
 and double-click. No installer, no .NET required (self-contained single file, ~72 MB).
 The calendar pins itself to the desktop; the app lives in the system tray.
 
+> **Note:** The exe is not code-signed, so Windows may show a SmartScreen warning
+> ("Windows protected your PC") on first run — click **More info → Run anyway**.
+> Each release lists a SHA256 hash; verify with `certutil -hashfile WinCal.exe SHA256`.
+
 ## Usage
 
 1. Google Calendar → Settings → your calendar → "Integrate calendar" → copy **"Secret address in iCal format"**
