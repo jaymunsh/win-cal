@@ -112,22 +112,8 @@ public partial class App : System.Windows.Application
 
     private static Icon CreateTrayIcon()
     {
-        var bmp = new Bitmap(32, 32);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.Clear(Color.Transparent);
-            using var body = new SolidBrush(Color.FromArgb(0x1E, 0x1E, 0x24));
-            using var header = new SolidBrush(Color.FromArgb(0x4C, 0xC2, 0xFF));
-            using var line = new Pen(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF), 1.5f);
-            g.FillRoundedRectangle(body, 3, 4, 26, 25, 5);
-            g.FillRoundedRectangle(header, 3, 4, 26, 8, 5);
-            g.FillRectangle(header, 3, 9, 26, 3);
-            g.DrawLine(line, 12, 14, 12, 27);
-            g.DrawLine(line, 21, 14, 21, 27);
-            g.DrawLine(line, 5, 20, 27, 20);
-        }
-        return Icon.FromHandle(bmp.GetHicon());
+        var s = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/AppIcon.ico"));
+        return new Icon(s!.Stream, 32, 32);
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -137,20 +123,5 @@ public partial class App : System.Windows.Application
         _hook?.Dispose();
         _mutex?.ReleaseMutex();
         base.OnExit(e);
-    }
-}
-
-internal static class GraphicsExtensions
-{
-    public static void FillRoundedRectangle(this Graphics g, Brush brush,
-        int x, int y, int w, int h, int r)
-    {
-        using var path = new System.Drawing.Drawing2D.GraphicsPath();
-        path.AddArc(x, y, r * 2, r * 2, 180, 90);
-        path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
-        path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
-        path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
-        path.CloseFigure();
-        g.FillPath(brush, path);
     }
 }

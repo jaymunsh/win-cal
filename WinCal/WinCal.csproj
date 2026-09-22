@@ -10,6 +10,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>WinCal</AssemblyName>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
     <Resource Include="Assets\Fonts\Pretendard-Regular.otf" />
     <Resource Include="Assets\Fonts\Pretendard-SemiBold.otf" />
     <Resource Include="Assets\Fonts\Pretendard-Bold.otf" />
+    <Resource Include="Assets\AppIcon.ico" />
   </ItemGroup>
 
 </Project>
