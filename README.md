@@ -4,7 +4,7 @@
 
 A monthly calendar widget that lives **on the Windows desktop** — rendered above the wallpaper, below the desktop icons, DesktopCal-style. No taskbar button, no Alt+Tab entry; it resides in the system tray only.
 
-![WinCal on the desktop](docs/screenshots/widget.png)
+![WinCal on the desktop](docs/screenshots/widget-en.png)
 
 ## Features
 
@@ -40,7 +40,7 @@ The calendar pins itself to the desktop; the app lives in the system tray.
 3. Position/resize: tray menu → "Adjust position" → drag, then "Done (lock)"
 4. Editing events stays in Google Calendar — the "Google Calendar" button opens it in the browser
 
-![Settings](docs/screenshots/settings.png)
+![Settings](docs/screenshots/settings-en.png)
 
 ## Build from source
 
