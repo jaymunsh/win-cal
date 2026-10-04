@@ -2,6 +2,17 @@
 
 [한국어](CHANGELOG.ko.md)
 
+## [Unreleased]
+
+### Added
+
+- App icon (multi-size .ico) applied to the exe, tray, and window title bars
+- Day-rollover detection: the calendar re-renders and re-syncs when the date changes
+
+### Removed
+
+- Floating sticker notes — replaced by the right-side memo panel
+
 ## [0.1.0] - 2026-09-22
 
 Initial release.

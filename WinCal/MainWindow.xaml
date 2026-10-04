@@ -37,7 +37,7 @@
         <Grid Grid.Row="2" x:Name="CellsGrid" Margin="4,1,4,4"/>
 
         <!-- Position-edit overlay (shown while "위치 조정" mode is active).
-             Sits below stickers/side-memo so they stay interactive. -->
+             Sits below the side memo so it stays interactive. -->
         <Grid x:Name="EditOverlay" Grid.Row="0" Grid.RowSpan="3" Grid.ColumnSpan="2" Visibility="Collapsed"
               Background="#26000000" MouseLeftButtonDown="EditOverlay_MouseDown">
             <Rectangle Stroke="#4CC2FF" StrokeThickness="2" StrokeDashArray="6 3" Margin="3"/>
@@ -51,10 +51,6 @@
                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
                    Background="#4CC2FF" DragDelta="ResizeGrip_DragDelta"/>
         </Grid>
-
-        <!-- Sticker layer (free-floating notes over the calendar) -->
-        <Canvas x:Name="StickerLayer" Grid.Row="1" Grid.RowSpan="2"
-                Margin="4,0,4,4" IsHitTestVisible="False"/>
 
         <!-- Side memo panel (right column, full height) -->
         <Border x:Name="SideMemoPanel" Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"

@@ -14,10 +14,9 @@ Windows **바탕화면에 박히는** 월간 캘린더 위젯. DesktopCal 스타
 - Google 캘린더 **읽기 전용** 연동 (ICS 비밀 주소) — **OAuth 불필요**
   - 여러 캘린더 지원 (한 줄에 URL 하나), 캘린더별 색상 점/칩 구분
   - 종일 일정은 색상 칩, 시간 일정은 `HH:mm` + 제목으로 표시
-- **스티커**: 위젯 위에 자유롭게 놓는 반투명 메모 (셀 더블클릭으로 생성)
 - **우측 메모 패널**: 달력 옆 고정 메모장 — 더블클릭하면 바로 타이핑 가능
 - 상단 바: 이전/다음 달, 오늘, 새로고침, Google 캘린더, 설정
-- 트레이 메뉴: 새로고침, Google 캘린더, 스티커 추가, **위치 조정**(드래그/리사이즈 후 잠금), 설정, 종료
+- 트레이 메뉴: 새로고침, Google 캘린더, **위치 조정**(드래그/리사이즈 후 잠금), 설정, 종료
 - 설정: ICS URL, 폰트(기본 Pretendard 번들), 테마(다크/라이트/미니멀/웜),
   언어(한국어/English), 표시 모니터, 새로고침 주기, 주 시작 요일,
   화면 전체/영역 지정, 크기 배율, 셀/전체 불투명도, 시작 프로그램 등록
@@ -59,7 +58,7 @@ dotnet publish WinCal -c Release -r win-x64 --self-contained `
 - `MouseHook.cs` — WH_MOUSE_LL로 데스크톱 클릭 감지 (창이 클릭 통과라 입력을 못 받으므로)
 - `DesktopIcons.cs` — UI Automation으로 바탕화면 아이콘 영역 조회 (SysListView32 + XAML island 모두 지원)
 - `CalendarService.cs` — ICS 다운로드 + Ical.Net occurrence 확장 (월별 캐시)
-- `StickerStore.cs` / `SettingsStore.cs` — `%AppData%\WinCal\` JSON 저장
+- `SettingsStore.cs` — `%AppData%\WinCal\` JSON 저장
 - `Themes.cs` — 테마 팔레트, `Loc.cs` — 한/영 문자열 테이블
 - 디버깅: `settings.json`에 `"DebugLogEnabled": true` → `debug.log` 기록
 

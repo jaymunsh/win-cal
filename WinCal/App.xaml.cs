@@ -14,7 +14,6 @@ public partial class App : System.Windows.Application
     private NotifyIcon? _tray;
     private ToolStripMenuItem? _positionItem;
     private AppSettings? _settings;
-    private StickerStore? _stickers;
 
     public static AppSettings Settings => ((App)Current)._settings!;
     public static MainWindow? Overlay => ((App)Current)._main;
@@ -28,11 +27,10 @@ public partial class App : System.Windows.Application
 
         _settings = SettingsStore.Load();
         DebugLog.Enabled = _settings.DebugLogEnabled;
-        _stickers = StickerStore.Load();
         var calendar = new CalendarService();
         calendar.LoadCached();
 
-        _main = new MainWindow(_settings, calendar, _stickers);
+        _main = new MainWindow(_settings, calendar);
         _main.Show();
 
         _hook = new MouseHook { Handler = _main.HandleMouseMessage };
@@ -65,7 +63,6 @@ public partial class App : System.Windows.Application
         var menu = new ContextMenuStrip();
         menu.Items.Add(Loc.T("tray_refresh"), null, (_, _) => { if (_main != null) _ = _main.RefreshCalendarAsync(); });
         menu.Items.Add(Loc.T("tray_gcal"), null, (_, _) => OpenGoogleCalendar());
-        menu.Items.Add(Loc.T("tray_sticker"), null, (_, _) => _main?.AddStickerCenter());
         menu.Items.Add(new ToolStripSeparator());
         _positionItem = new ToolStripMenuItem(
             _main?.IsEditMode == true ? Loc.T("tray_lock") : Loc.T("tray_position"),

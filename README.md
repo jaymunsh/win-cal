@@ -14,10 +14,9 @@ A monthly calendar widget that lives **on the Windows desktop** — rendered abo
 - **Read-only** Google Calendar sync via secret iCal (ICS) URLs — **no OAuth required**
   - Multiple calendars supported (one URL per line), per-calendar color dots/chips
   - All-day events render as colored chips; timed events show `HH:mm` + title
-- **Stickers**: free-floating translucent notes on the widget (double-click a cell to create)
 - **Side memo panel**: a fixed notepad on the right edge — double-click to type inline
 - Header bar: prev/next month, today, refresh, Google Calendar, settings
-- Tray menu: refresh, Google Calendar, add sticker, **adjust position** (drag/resize, then lock), settings, exit
+- Tray menu: refresh, Google Calendar, **adjust position** (drag/resize, then lock), settings, exit
 - Settings: ICS URLs, font (Pretendard bundled), theme (Dark/Light/Minimal/Warm),
   language (한국어/English), monitor, refresh interval, week start day,
   full-screen/region mode, UI scale, cell/window opacity, run at startup
@@ -59,7 +58,7 @@ dotnet publish WinCal -c Release -r win-x64 --self-contained `
 - `MouseHook.cs` — `WH_MOUSE_LL` to observe desktop clicks (the window is click-through)
 - `DesktopIcons.cs` — UI Automation hit-testing so icon clicks pass through (SysListView32 + XAML islands)
 - `CalendarService.cs` — ICS download + Ical.Net occurrence expansion (cached per month)
-- `StickerStore.cs` / `SettingsStore.cs` — JSON persistence in `%AppData%\WinCal\`
+- `SettingsStore.cs` — JSON persistence in `%AppData%\WinCal\`
 - `Themes.cs` — theme palettes; `Loc.cs` — Korean/English string tables
 - Debugging: set `"DebugLogEnabled": true` in `settings.json` → `debug.log`
 

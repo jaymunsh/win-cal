@@ -17,7 +17,6 @@ namespace WinCal;
 public partial class MainWindow : Window
 {
     private readonly AppSettings _settings;
-    private readonly StickerStore _stickers;
     private readonly CalendarService _calendar;
 
     private DateTime _viewMonth;
@@ -25,8 +24,6 @@ public partial class MainWindow : Window
 
     // Screen-space hit regions (window covers the desktop, so client == screen).
     private readonly List<(Rect Rect, Action Action, Border Visual)> _buttonRegions = new();
-    private readonly List<(Rect Rect, DateOnly Date)> _cellRegions = new();
-    private readonly List<(Rect Rect, Sticker Sticker)> _stickerRegions = new();
     private (Rect Rect, Action Action)? _pendingButton;
     private int _lastCellUpTick;
     private object? _lastCellUpHit;
@@ -35,6 +32,8 @@ public partial class MainWindow : Window
 
     private readonly DispatcherTimer _attachWatchdog;
     private readonly DispatcherTimer _refreshTimer;
+    private readonly DispatcherTimer _dayTimer;
+    private DateOnly _lastDay = DateOnly.FromDateTime(DateTime.Today);
 
     private Theme _theme = Themes.Get(null);
     private Brush _text = System.Windows.Media.Brushes.White, _dim = System.Windows.Media.Brushes.White,
@@ -54,10 +53,9 @@ public partial class MainWindow : Window
         new SolidColorBrush(Color.FromRgb(0x4D, 0xD0, 0xE1)), // cyan
     };
 
-    internal MainWindow(AppSettings settings, CalendarService calendar, StickerStore stickers)
+    internal MainWindow(AppSettings settings, CalendarService calendar)
     {
         _settings = settings;
-        _stickers = stickers;
         _calendar = calendar;
         _viewMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
@@ -75,6 +73,18 @@ public partial class MainWindow : Window
         _refreshTimer = new DispatcherTimer();
         _refreshTimer.Tick += async (_, _) => await RefreshCalendarAsync();
         ApplyRefreshInterval();
+
+        // Detect the day rolling over so the "today" highlight and view stay current.
+        _dayTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        _dayTimer.Tick += (_, _) =>
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            if (today == _lastDay) return;
+            _lastDay = today;
+            Render();
+            _ = RefreshCalendarAsync();
+        };
+        _dayTimer.Start();
 
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => EnsureAttached(force: true);
         Deactivated += (_, _) => CommitInlineMemoEdit();
@@ -225,7 +235,6 @@ public partial class MainWindow : Window
         RenderHeaderButtons();
         RenderWeekdays();
         RenderCells();
-        RenderStickers();
         RenderSideMemo();
         Dispatcher.BeginInvoke(RebuildHitRegions, DispatcherPriority.Loaded);
     }
@@ -302,7 +311,6 @@ public partial class MainWindow : Window
         CellsGrid.Children.Clear();
         CellsGrid.RowDefinitions.Clear();
         CellsGrid.ColumnDefinitions.Clear();
-        _cellRegions.Clear();
         _calBrushCache.Clear();
 
         var firstOfMonth = _viewMonth;
@@ -579,21 +587,6 @@ public partial class MainWindow : Window
             _buttonRegions.Add((new Rect(tl.X, tl.Y, b.ActualWidth * dpi, b.ActualHeight * dpi), a, b));
         }
 
-        _cellRegions.Clear();
-        foreach (Border cell in CellsGrid.Children)
-        {
-            if (cell.Tag is not DateOnly d) continue;
-            var tl = cell.PointToScreen(new Point(0, 0));
-            _cellRegions.Add((new Rect(tl.X, tl.Y, cell.ActualWidth * dpi, cell.ActualHeight * dpi), d));
-        }
-
-        _stickerRegions.Clear();
-        foreach (var s in _stickers.Items)
-        {
-            var tl = StickerLayer.PointToScreen(new Point(s.X, s.Y));
-            _stickerRegions.Add((new Rect(tl.X, tl.Y, s.W * dpi, s.H * dpi), s));
-        }
-
         _memoRegion = null;
         if (SideMemoPanel.Visibility == Visibility.Visible)
         {
@@ -601,7 +594,7 @@ public partial class MainWindow : Window
             _memoRegion = new Rect(tl.X, tl.Y,
                 SideMemoPanel.ActualWidth * dpi, SideMemoPanel.ActualHeight * dpi);
         }
-        DebugLog.Write($"HitRegions buttons={_buttonRegions.Count} cells={_cellRegions.Count} stickers={_stickerRegions.Count} dpi={dpi}");
+        DebugLog.Write($"HitRegions buttons={_buttonRegions.Count} dpi={dpi}");
     }
 
     private double DpiScale() => VisualTreeHelper.GetDpi(this).PixelsPerDip;
@@ -666,36 +659,27 @@ public partial class MainWindow : Window
                 else
                 {
                     result = false;
-                    // Same spot double-click detection (cell or sticker region).
-                    object? hit = null;
-                    foreach (var (rect, s) in _stickerRegions)
-                        if (rect.Contains(pt.X, pt.Y)) { hit = s; break; }
-                    if (hit == null && _memoRegion is { } mr && mr.Contains(pt.X, pt.Y))
-                        hit = MemoHit;
-                    if (hit == null)
-                        foreach (var (rect, date) in _cellRegions)
-                            if (rect.Contains(pt.X, pt.Y)) { hit = date; break; }
-                    if (hit == null) { _lastCellUpHit = null; break; }
+                    // Double-click detection on the side memo panel.
+                    if (_memoRegion is not { } mr || !mr.Contains(pt.X, pt.Y))
+                    {
+                        _lastCellUpHit = null;
+                        break;
+                    }
 
                     int now = Environment.TickCount;
-                    bool isDouble = _lastCellUpHit?.Equals(hit) == true
+                    bool isDouble = _lastCellUpHit == MemoHit
                         && now - _lastCellUpTick <= _dblClickMs
                         && Math.Abs(pt.X - _lastCellUpPt.X) < 10
                         && Math.Abs(pt.Y - _lastCellUpPt.Y) < 10;
                     _lastCellUpTick = now;
-                    _lastCellUpHit = hit;
+                    _lastCellUpHit = MemoHit;
                     _lastCellUpPt = pt;
                     if (!isDouble) break;
                     if (!IsDesktopHit(pt)) { DebugLog.Write($"DBLCLK not desktop {pt.X},{pt.Y} {ClassAt(pt)}"); break; }
                     if (DesktopIcons.IsOnIcon(pt)) { DebugLog.Write($"DBLCLK on icon {pt.X},{pt.Y}"); break; }
                     _lastCellUpHit = null;
-                    if (hit is Sticker st)
-                        Dispatcher.BeginInvoke(() => EditStickerText(st));
-                    else if (hit == MemoHit)
-                        Dispatcher.BeginInvoke(BeginInlineMemoEdit);
-                    else
-                        Dispatcher.BeginInvoke(() => CreateStickerAt(pt));
-                    DebugLog.Write($"DBLCLK {pt.X},{pt.Y} hit={hit.GetType().Name}");
+                    Dispatcher.BeginInvoke(BeginInlineMemoEdit);
+                    DebugLog.Write($"DBLCLK {pt.X},{pt.Y} memo");
                     result = true;
                 }
                 break;
@@ -709,188 +693,6 @@ public partial class MainWindow : Window
                 return false;
         }
         return result;
-    }
-
-    // ---------- Stickers ----------
-
-    /// <summary>Renders stickers. Editable controls (drag/resize/text/delete) only in edit mode.</summary>
-    private void RenderStickers()
-    {
-        StickerLayer.Children.Clear();
-        foreach (var s in _stickers.Items)
-        {
-            var brush = StickerBrush(s);
-            UIElement inner = _editMode ? EditableSticker(s) : new TextBlock
-            {
-                Text = s.Text,
-                FontSize = 12,
-                Foreground = System.Windows.Media.Brushes.White,
-                TextWrapping = TextWrapping.Wrap
-            };
-            var box = new Border
-            {
-                Width = s.W,
-                Height = s.H,
-                Background = brush,
-                CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(8, 6, 8, 6),
-                Child = inner
-            };
-            Canvas.SetLeft(box, s.X);
-            Canvas.SetTop(box, s.Y);
-            StickerLayer.Children.Add(box);
-        }
-    }
-
-    private static readonly Dictionary<string, SolidColorBrush> _stickerBrushCache = new();
-
-    private static SolidColorBrush StickerBrush(Sticker s)
-    {
-        if (_stickerBrushCache.TryGetValue(s.Color, out var cached)) return cached;
-        SolidColorBrush brush;
-        try
-        {
-            brush = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString(s.Color));
-        }
-        catch { brush = new SolidColorBrush(Color.FromArgb(0x99, 0x4C, 0xC2, 0xFF)); }
-        _stickerBrushCache[s.Color] = brush;
-        return brush;
-    }
-
-    /// <summary>Sticker chrome for edit mode: drag strip + delete, text box, resize grip.</summary>
-    private UIElement EditableSticker(Sticker s)
-    {
-        var grid = new Grid { Margin = new Thickness(-8, -6, -8, -6), Tag = s };
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(16) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-        var dragStrip = new Border();
-        var delBtn = new System.Windows.Controls.Button
-        {
-            Content = "✕", FontSize = 9, Padding = new Thickness(4, 0, 4, 0),
-            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-            Cursor = System.Windows.Input.Cursors.Hand
-        };
-        delBtn.Click += (_, _) => { _stickers.Remove(s); RenderStickers(); RebuildHitRegions(); };
-        dragStrip.Child = delBtn;
-        // Drag by the strip (or anywhere not covered by the text box).
-        dragStrip.MouseLeftButtonDown += (_, e) => BeginStickerDrag(s, e, resize: false);
-        Grid.SetRow(dragStrip, 0);
-        grid.Children.Add(dragStrip);
-
-        var box = new System.Windows.Controls.TextBox
-        {
-            Text = s.Text,
-            FontSize = 12,
-            Foreground = System.Windows.Media.Brushes.White,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap,
-            Padding = new Thickness(8, 2, 8, 2),
-            CaretBrush = System.Windows.Media.Brushes.White
-        };
-        box.TextChanged += (_, _) => s.Text = box.Text;
-        box.LostFocus += (_, _) => _stickers.Save();
-        Grid.SetRow(box, 1);
-        grid.Children.Add(box);
-
-        var grip = new Border
-        {
-            Width = 12, Height = 12,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom,
-            Background = new SolidColorBrush(Color.FromArgb(0xB0, 0xFF, 0xFF, 0xFF)),
-            CornerRadius = new CornerRadius(0, 0, 4, 0),
-            Cursor = System.Windows.Input.Cursors.SizeNWSE
-        };
-        grip.MouseLeftButtonDown += (_, e) => BeginStickerDrag(s, e, resize: true);
-        Grid.SetRowSpan(grip, 2);
-        grid.Children.Add(grip);
-        return grid;
-    }
-
-    /// <summary>Manual drag/resize inside StickerLayer (edit mode only).</summary>
-    private void BeginStickerDrag(Sticker s, MouseButtonEventArgs e, bool resize)
-    {
-        var src = (UIElement)e.Source;
-        var start = e.GetPosition(StickerLayer);
-        double ox = s.X, oy = s.Y, ow = s.W, oh = s.H;
-        src.CaptureMouse();
-
-        src.MouseMove += Mv;
-        src.MouseLeftButtonUp += Up;
-
-        void Mv(object _, System.Windows.Input.MouseEventArgs ev)
-        {
-            var p = ev.GetPosition(StickerLayer);
-            if (resize)
-            {
-                s.W = Math.Max(80, ow + p.X - start.X);
-                s.H = Math.Max(50, oh + p.Y - start.Y);
-            }
-            else
-            {
-                s.X = Math.Max(0, ox + p.X - start.X);
-                s.Y = Math.Max(0, oy + p.Y - start.Y);
-            }
-            // Update the outer border directly.
-            foreach (var child in StickerLayer.Children)
-                if (child is Border b && b.Child is Grid g && GetSticker(g) == s)
-                {
-                    Canvas.SetLeft(b, s.X);
-                    Canvas.SetTop(b, s.Y);
-                    b.Width = s.W;
-                    b.Height = s.H;
-                    break;
-                }
-        }
-        void Up(object _, System.Windows.Input.MouseButtonEventArgs ev)
-        {
-            src.MouseMove -= Mv;
-            src.MouseLeftButtonUp -= Up;
-            src.ReleaseMouseCapture();
-            _stickers.Save();
-        }
-        e.Handled = true;
-    }
-
-    /// <summary>Find which sticker an editable grid belongs to (via its TextBox binding closure isn't available, so we tag it).</summary>
-    private static Sticker? GetSticker(Grid g) => g.Tag as Sticker;
-
-    /// <summary>Create a sticker at a screen point (from the mouse hook).</summary>
-    private void CreateStickerAt(Win32.POINT pt)
-    {
-        var p = StickerLayer.PointFromScreen(new Point(pt.X, pt.Y));
-        var s = _stickers.Add(Math.Max(0, p.X - 75), Math.Max(0, p.Y - 45));
-        RenderStickers();
-        RebuildHitRegions();
-        EditStickerText(s);
-    }
-
-    /// <summary>Tray "스티커 추가": create near the center of the widget.</summary>
-    public void AddStickerCenter()
-    {
-        var s = _stickers.Add(
-            Math.Max(0, StickerLayer.ActualWidth / 2 - 75),
-            Math.Max(0, StickerLayer.ActualHeight / 2 - 45));
-        RenderStickers();
-        RebuildHitRegions();
-        EditStickerText(s);
-    }
-
-    private void EditStickerText(Sticker s)
-    {
-        var dlg = new StickerEditWindow(s, _stickers) { Owner = null };
-        if (dlg.ShowDialog() == true)
-        {
-            if (dlg.Deleted || string.IsNullOrWhiteSpace(s.Text))
-            {
-                if (!dlg.Deleted) _stickers.Remove(s); // empty text → discard
-            }
-            RenderStickers();
-            RebuildHitRegions();
-        }
     }
 
     public void PrevMonth() { _viewMonth = _viewMonth.AddMonths(-1); Render(); }
@@ -907,8 +709,6 @@ public partial class MainWindow : Window
         if (_editMode) return;
         _editMode = true;
         EditOverlay.Visibility = Visibility.Visible;
-        StickerLayer.IsHitTestVisible = true;
-        RenderStickers();
         RenderSideMemo();
 
         long ex = Win32.GetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE).ToInt64();
@@ -927,10 +727,7 @@ public partial class MainWindow : Window
         if (!_editMode) return;
         _editMode = false;
         EditOverlay.Visibility = Visibility.Collapsed;
-        StickerLayer.IsHitTestVisible = false;
-        _stickers.Save();
         SettingsStore.Save(_settings); // side memo text edited inline
-        RenderStickers();
         RenderSideMemo();
         RebuildHitRegions();
 
