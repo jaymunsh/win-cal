@@ -32,7 +32,6 @@ public partial class MainWindow : Window
 
     private readonly DispatcherTimer _attachWatchdog;
     private readonly DispatcherTimer _refreshTimer;
-    private readonly DispatcherTimer _dayTimer;
     private DateOnly _lastDay = DateOnly.FromDateTime(DateTime.Today);
 
     private Theme _theme = Themes.Get(null);
@@ -65,7 +64,7 @@ public partial class MainWindow : Window
         ApplyLoc();
 
         _attachWatchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        _attachWatchdog.Tick += (_, _) => EnsureAttached();
+        _attachWatchdog.Tick += (_, _) => { EnsureAttached(); CheckDayRollover(); };
         _attachWatchdog.Start();
 
         UpdateTargetBounds();
@@ -73,18 +72,6 @@ public partial class MainWindow : Window
         _refreshTimer = new DispatcherTimer();
         _refreshTimer.Tick += async (_, _) => await RefreshCalendarAsync();
         ApplyRefreshInterval();
-
-        // Detect the day rolling over so the "today" highlight and view stay current.
-        _dayTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
-        _dayTimer.Tick += (_, _) =>
-        {
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            if (today == _lastDay) return;
-            _lastDay = today;
-            Render();
-            _ = RefreshCalendarAsync();
-        };
-        _dayTimer.Start();
 
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => EnsureAttached(force: true);
         Deactivated += (_, _) => CommitInlineMemoEdit();
@@ -148,6 +135,17 @@ public partial class MainWindow : Window
         DebugLog.Write($"Attach force={force} mode={DesktopAttacher.Mode} ok={ok}");
         if (ok)
             Dispatcher.BeginInvoke(RebuildHitRegions);
+    }
+
+    /// <summary>Day rolled over → re-render (today highlight) and re-sync.
+    /// Checked on the 5s attach watchdog tick — a DateOnly compare is free.</summary>
+    private void CheckDayRollover()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (today == _lastDay) return;
+        _lastDay = today;
+        Render();
+        _ = RefreshCalendarAsync();
     }
 
     // ---------- Rendering ----------
